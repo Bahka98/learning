@@ -5,6 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Checkout Pix - Dezpila</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link data-optimized="2" rel="stylesheet" href="https://dezpila.org/wp-content/litespeed/css/dd3cf3fe4f85248da88707a5291582d0.css?ver=15134" />
+    <meta name="generator" content="Elementor 3.34.1" />
+
+    <link rel="icon" href="https://dezpila.org/wp-content/uploads/2025/11/cropped-images-32x32.jpeg" sizes="32x32" />
+    <link rel="icon" href="https://dezpila.org/wp-content/uploads/2025/11/cropped-images-192x192.jpeg" sizes="192x192" />
+    <link rel="apple-touch-icon" href="https://dezpila.org/wp-content/uploads/2025/11/cropped-images-180x180.jpeg" />
     <style>
         :root {
             --primary-blue: #2c73e8;
@@ -220,55 +226,83 @@
     </div>
 </div>
 
-<script>
+    <script>
+    let checkInterval; // Variável global para parar a consulta quando pagar
+
     async function gerarPix() {
         const nome = document.getElementById('nome').value;
         const email = document.getElementById('email').value;
         const cpf = document.getElementById('cpf').value;
 
         if(!nome || !email || !cpf) {
-            alert("Por favor, preencha todos os campos corretamente.");
+            alert("Preencha todos os campos!");
             return;
         }
 
         const btn = document.getElementById('btn-finalizar');
-        btn.innerText = "PROCESSANDO...";
+        btn.innerText = "GERANDO...";
         btn.disabled = true;
 
         try {
-            // Chamada para a sua Serverless Function na Vercel
             const response = await fetch('/api/finalizar', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ nome, email, cpf })
             });
 
-            if (!response.ok) throw new Error("Erro no servidor");
-
             const data = await response.json();
 
             if (data.qr_code) {
-                // Esconde o formulário e mostra o QR Code
                 document.getElementById('form-container').style.display = 'none';
                 document.getElementById('pix-result').style.display = 'block';
-                
-                // Preenche os dados reais vindos do Mercado Pago
                 document.getElementById('qr-image').src = `data:image/jpeg;base64,${data.qr_code_base64}`;
                 document.getElementById('pix-code-text').innerText = data.qr_code;
+
+                // --- NOVIDADE: Começa a verificar se o pagamento caiu ---
+                // Verifica a cada 5 segundos usando o ID que o Mercado Pago gerou
+                checkInterval = setInterval(() => {
+                    verificarStatus(data.id);
+                }, 5000);
+
+            } else {
+                throw new Error("Erro na resposta do servidor");
             }
         } catch (error) {
             console.error(error);
-            alert("Erro ao gerar Pix. Certifique-se de que o projeto está hospedado na Vercel com o backend configurado.");
+            alert("Erro ao gerar Pix.");
             btn.innerText = "Gerar QR Code Pix";
             btn.disabled = false;
         }
     }
 
+    // --- FUNÇÃO NOVA: Consulta o status ---
+    async function verificarStatus(pagamentoId) {
+        try {
+            const response = await fetch(`/api/verificar?id=${pagamentoId}`);
+            const data = await response.json();
+
+            if (data.status === 'approved') {
+                clearInterval(checkInterval); // Para de perguntar ao servidor
+                
+                // Transforma a tela em Sucesso
+                document.getElementById('pix-result').innerHTML = `
+                    <div style="padding: 20px; color: #28a745;">
+                        <i class="fas fa-check-circle" style="font-size: 4rem;"></i>
+                        <h2 style="margin-top: 15px;">Pagamento Confirmado!</h2>
+                        <p style="color: #333;">Obrigado, seu acesso foi liberado com sucesso.</p>
+                        <button onclick="window.location.reload()" class="btn-generate">Acessar Conteúdo</button>
+                    </div>
+                `;
+            }
+        } catch (error) {
+            console.error("Erro ao verificar status", error);
+        }
+    }
+
     function copiarCodigo() {
         const texto = document.getElementById('pix-code-text').innerText;
-        navigator.clipboard.writeText(texto).then(() => {
-            alert("Código Pix copiado para a área de transferência!");
-        });
+        navigator.clipboard.writeText(texto);
+        alert("Código copiado!");
     }
 </script>
 
