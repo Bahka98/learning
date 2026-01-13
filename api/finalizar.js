@@ -1,10 +1,15 @@
-const { MercadoPagoConfig, Payment } = require('mercadopago');
+// api/finalizar.js
+import { MercadoPagoConfig, Payment } from 'mercadopago';
 
 export default async function handler(req, res) {
-    if (req.method !== 'POST') return res.status(405).send('Método não permitido');
+    if (req.method !== 'POST') {
+        return res.status(405).json({ message: 'Método não permitido' });
+    }
 
-    // O Token fica guardado na Vercel, não no código!
-    const client = new MercadoPagoConfig({ accessToken: process.env.MP_ACCESS_TOKEN });
+    // Configuração com a variável de ambiente segura
+    const client = new MercadoPagoConfig({ 
+        accessToken: process.env.MP_ACCESS_TOKEN 
+    });
     const payment = new Payment(client);
 
     try {
@@ -17,7 +22,10 @@ export default async function handler(req, res) {
             payer: {
                 email: email,
                 first_name: nome,
-                identification: { type: 'CPF', number: cpf.replace(/\D/g, '') }
+                identification: { 
+                    type: 'CPF', 
+                    number: cpf.replace(/\D/g, '') 
+                }
             }
         };
 
@@ -28,6 +36,7 @@ export default async function handler(req, res) {
             qr_code_base64: result.point_of_interaction.transaction_data.qr_code_base64
         });
     } catch (error) {
-        return res.status(500).json({ error: error.message });
+        console.error(error);
+        return res.status(500).json({ error: 'Erro ao processar pagamento' });
     }
 }
