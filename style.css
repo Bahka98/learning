@@ -113,6 +113,7 @@ video{
     text-transform:uppercase
 }
 #header ul li a{
+    color: #fff;
     display:block;
     font-weight:600;
     position:relative;
@@ -145,7 +146,8 @@ video{
     background-image:linear-gradient(267deg,#ea002a 0%,#ff234e 100%);
     will-change:transform;
     transition:transform .3s;
-    transition-duration:.5s
+    transition-duration:.5s;
+    color: #ffffff;
 }
 .button:active,.button:focus,.button:hover{
     transform:scale(1.2);
@@ -306,7 +308,8 @@ video{
 }
 #footer ul li a{
     text-decoration:underline;
-    transition:color .2s
+    transition:color .2s;
+    color: #fff
 }
 #footer ul li a:hover{
     color:#ea002a
